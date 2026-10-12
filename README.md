@@ -83,6 +83,8 @@ A full Kali XFCE desktop runs in the container and is streamed to your browser o
 > [!NOTE]
 > First boot downloads a large image and installs the tools (Burp Suite, ZAP, nmap), so it takes several minutes before the desktop responds on port 3001. Watch progress with `docker logs -f kali`. Make sure Docker has **~10 GB of free disk**, or the image extraction fails with "no space left on device"; free space with `docker image prune` and by removing stopped projects you can rebuild.
 
+![Kali Linux desktop running in the browser](docs/kali-desktop.png)
+
 ## Option C — Strix (AI agent, paid)
 
 ```bash
