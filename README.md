@@ -81,7 +81,7 @@ open http://127.0.0.1:3001           # Kali desktop in your browser
 A full Kali XFCE desktop runs in the container and is streamed to your browser over noVNC. Inside it you get ZAP, Burp Suite, nmap, Firefox and more. Point any of them at `http://juice-shop:3000`. The first start is slow (large image + tool install) and the desktop is heavier than ZAP alone.
 
 > [!NOTE]
-> First boot downloads a large image and installs the tools, so it can take many minutes before the desktop responds on port 3001. If `127.0.0.1:3001` does not load yet, check progress with `docker logs -f kali`.
+> First boot downloads a large image and installs the tools (Burp Suite, ZAP, nmap), so it takes several minutes before the desktop responds on port 3001. Watch progress with `docker logs -f kali`. Make sure Docker has **~10 GB of free disk**, or the image extraction fails with "no space left on device"; free space with `docker image prune` and by removing stopped projects you can rebuild.
 
 ## Option C — Strix (AI agent, paid)
 
