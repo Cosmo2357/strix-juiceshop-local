@@ -1,0 +1,18 @@
+# ローカル・ペンテスト用: OWASP Juice Shop をターゲットとして起動する
+# - ホストへの公開は 127.0.0.1 のみ（自分のPCからだけアクセス可能 / 外部に晒さない）
+# - pentest-net 上に置くことで、Strix の Docker サンドボックスから
+#   コンテナ名 "juice-shop:3000" で到達できる
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"   # ← 自分のPCからだけアクセス可能
+    networks:
+      - pentest-net
+
+networks:
+  pentest-net:
+    name: pentest-net
+    external: true
