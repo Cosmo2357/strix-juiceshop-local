@@ -25,10 +25,10 @@ flowchart LR
     cli -->|launches| sandbox
     agent -->|"rewrites localhost to<br/>host.docker.internal, then attacks"| juice
 
-    classDef target fill:#ffe0e0,stroke:#c00;
-    classDef tool fill:#e0ecff,stroke:#06c;
+    classDef target fill:#c0392b,stroke:#7b241c,stroke-width:2px,color:#ffffff;
+    classDef tool fill:#1f6feb,stroke:#0b3d91,stroke-width:2px,color:#ffffff;
     class juice target;
-    class agent,cli tool;
+    class agent,cli,browser tool;
 ```
 
 Two key points:
