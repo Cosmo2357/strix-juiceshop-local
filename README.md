@@ -1,29 +1,29 @@
-# Strix × OWASP Juice Shop ローカル・ペンテスト環境
+# Strix × OWASP Juice Shop — Local Pentest Environment
 
-ローカルの Docker 上で動く [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/)（学習用のわざと脆弱な Web アプリ）を、AI ペンテストエージェント [Strix](https://github.com/usestrix/strix) で自分の PC だけで安全に診断するための環境です。
+A self-contained setup to run the AI penetration-testing agent [Strix](https://github.com/usestrix/strix) against [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/) (an intentionally vulnerable learning app) entirely on your own machine, safely.
 
 > [!WARNING]
-> Juice Shop は**意図的に脆弱**に作られたアプリです。外部ネットワークには絶対に公開しないでください。この構成はポートを `127.0.0.1`（自分の PC のみ）に限定しているため安全です。自分が管理するこのターゲット以外に Strix を向けないでください。
+> Juice Shop is **intentionally vulnerable**. Never expose it to any external network. This setup binds the port to `127.0.0.1` (your machine only), so it stays safe. Only point Strix at this target that you own and control.
 
-## 構成図
+## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph host["あなたの Mac（ホスト）"]
-        browser["ブラウザ<br/>http://127.0.0.1:3000"]
+    subgraph host["Your machine (host)"]
+        browser["Browser<br/>http://127.0.0.1:3000"]
         cli["strix CLI"]
 
         subgraph docker["Docker"]
-            juice["juice-shop<br/>コンテナ :3000"]
-            subgraph sandbox["Strix サンドボックス"]
-                agent["AI エージェント群"]
+            juice["juice-shop<br/>container :3000"]
+            subgraph sandbox["Strix sandbox"]
+                agent["AI agents"]
             end
         end
     end
 
-    browser -->|"127.0.0.1 のみ公開"| juice
-    cli -->|起動| sandbox
-    agent -->|"localhost を host.docker.internal に<br/>自動変換して攻撃"| juice
+    browser -->|"exposed on 127.0.0.1 only"| juice
+    cli -->|launches| sandbox
+    agent -->|"rewrites localhost to<br/>host.docker.internal, then attacks"| juice
 
     classDef target fill:#ffe0e0,stroke:#c00;
     classDef tool fill:#e0ecff,stroke:#06c;
@@ -31,70 +31,70 @@ flowchart LR
     class agent,cli tool;
 ```
 
-ポイントは2つです。
+Two key points:
 
-- **Juice Shop は `127.0.0.1:3000` のみに公開**。同じ Wi-Fi の他端末からも届かず、外部にも晒されません。
-- **Strix はサンドボックス内から攻撃**するが、`localhost` / `127.0.0.1` を自動で `host.docker.internal` に書き換えるため、ループバック限定のターゲットにも到達できます。
+- **Juice Shop is published on `127.0.0.1:3000` only.** It is unreachable from other devices on the same Wi-Fi and from the internet.
+- **Strix attacks from inside its sandbox**, but it automatically rewrites `localhost` / `127.0.0.1` to `host.docker.internal`, so it can still reach a loopback-only target.
 
-## 前提
+## Prerequisites
 
-| 必要なもの | 確認コマンド |
+| Requirement | Check |
 | --- | --- |
-| Docker（起動中） | `docker ps` |
+| Docker (running) | `docker ps` |
 | Strix CLI | `strix --version` |
-| LLM の API キー | Anthropic / OpenAI などお好みのプロバイダ |
+| An LLM API key | Anthropic / OpenAI / etc. |
 
-Strix 未インストールの場合は `uv tool install strix-agent`（または `pipx install strix-agent`）で入ります。
+If Strix is not installed yet: `uv tool install strix-agent` (or `pipx install strix-agent`).
 
-## セットアップ
+## Setup
 
-### 1. LLM の設定（`.env`）
+### 1. Configure the LLM (`.env`)
 
-`.env.example` をコピーして、使うプロバイダのキーを書きます。
+Copy the example and fill in your provider's key.
 
 ```bash
 cp .env.example .env
-# .env を開いて LLM_API_KEY を自分のキーに書き換える
+# edit .env and set LLM_API_KEY to your own key
 ```
 
-`.env` は [.gitignore](.gitignore) 済みなので Git には載りません。
+`.env` is listed in [.gitignore](.gitignore), so it never gets committed.
 
-### 2. 実行
+### 2. Run
 
 ```bash
-./run-pentest.sh -m quick        # まずはクイックスキャン
-./run-pentest.sh                 # 既定（deep）でじっくり
-./run-pentest.sh --instruction "SQLiとXSSを重点的に"
+./run-pentest.sh -m quick        # quick scan first
+./run-pentest.sh                 # default (deep) scan
+./run-pentest.sh --instruction "Focus on SQLi and XSS"
 ```
 
-スクリプトが Juice Shop の起動 → 応答待ち → Strix 実行までを自動で行います。`.env` も自動で読み込みます。
+The script starts Juice Shop, waits until it responds, then runs Strix. It loads `.env` automatically.
 
-手動で Strix だけ回す場合:
+To run Strix by hand:
 
 ```bash
 strix --target http://localhost:3000 -m quick
 ```
 
-結果は `strix_runs/<run-name>/` に保存されます（Git からは除外）。
+Results are saved to `strix_runs/<run-name>/` (excluded from git).
 
-## 片付け
+## Teardown
 
 ```bash
-docker compose down      # Juice Shop を停止・削除
-docker ps                # 稼働確認
+docker compose down      # stop and remove Juice Shop
+docker ps                # verify
 ```
 
-## ファイル構成
+## Files
 
-| ファイル | 役割 |
+| File | Purpose |
 | --- | --- |
-| [docker-compose.yml](docker-compose.yml) | Juice Shop を `127.0.0.1:3000` で起動 |
-| [run-pentest.sh](run-pentest.sh) | `.env` 読み込み → 起動 → Strix 実行 |
-| [.env.example](.env.example) | LLM 設定のテンプレート（キーは各自記入） |
-| [.gitignore](.gitignore) | `.env` とスキャン結果を除外 |
+| [docker-compose.yml](docker-compose.yml) | Runs Juice Shop on `127.0.0.1:3000` |
+| [run-pentest.sh](run-pentest.sh) | Loads `.env`, starts the target, runs Strix |
+| [.env.example](.env.example) | Template for LLM config (you add the key) |
+| [.gitignore](.gitignore) | Excludes `.env` and scan results |
 
-## セキュリティ注意事項
+## Security notes
 
-- `.env` に実際の API キーを入れます。**絶対にコミットしないでください**（`.gitignore` 済み）。
-- `docker-compose.yml` の `127.0.0.1:3000:3000` を `3000:3000` に変えると LAN 全体に脆弱アプリを晒すことになります。変更しないでください。
-- Strix は自分が許可を得たターゲットにのみ使用してください。本リポジトリの用途は自分の PC 内の Juice Shop に対する学習・検証に限られます。
+- `.env` holds your real API key. **Never commit it** (already in `.gitignore`).
+- Changing `127.0.0.1:3000:3000` to `3000:3000` in `docker-compose.yml` would expose a vulnerable app to your whole LAN. Don't.
+- Only use Strix against targets you are authorized to test. This repo is scoped to the local Juice Shop instance on your own machine, for learning and validation.
