@@ -1,18 +1,77 @@
-# ローカル・ペンテスト用: OWASP Juice Shop をターゲットとして起動する
-# - ホストへの公開は 127.0.0.1 のみ（自分のPCからだけアクセス可能 / 外部に晒さない）
-# - pentest-net 上に置くことで、Strix の Docker サンドボックスから
-#   コンテナ名 "juice-shop:3000" で到達できる
+# ローカル・ペンテスト練習環境
+# =========================================================================
+# ターゲット(Juice Shop)と、攻撃側ツール(ZAP / Kali)を同じ Docker ネットワーク
+# "pentest-net" に載せる。コンテナ同士はコンテナ名で通信するので、攻撃側からは
+#   http://juice-shop:3000
+# でターゲットに届く（127.0.0.1 ではない点に注意）。
+#
+# ホストのブラウザからは 127.0.0.1 の公開ポートで各 GUI にアクセスする。
+# いずれも 127.0.0.1 限定公開なので、外部ネットワークには一切晒されない。
+#
+# profiles で起動するツールを選ぶ:
+#   docker compose up -d                        # ターゲットのみ
+#   docker compose --profile zap   up -d        # + ZAP (軽量・ブラウザUI)
+#   docker compose --profile kali  up -d        # + Kali デスクトップ (本格・重い)
+# =========================================================================
+
 services:
+  # --- ターゲット: OWASP Juice Shop（意図的に脆弱な学習用アプリ）---
   juice-shop:
     image: bkimminich/juice-shop:latest
     container_name: juice-shop
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"   # ← 自分のPCからだけアクセス可能
+      - "127.0.0.1:3000:3000"   # ブラウザ確認用: http://127.0.0.1:3000
     networks:
       - pentest-net
+
+  # --- 攻撃側 B: OWASP ZAP（ブラウザUIで使える軽量スキャナ）---
+  # 起動: docker compose --profile zap up -d
+  # UI  : http://127.0.0.1:8090/zap/
+  # ターゲット指定は http://juice-shop:3000
+  zap:
+    image: zaproxy/zap-stable:latest
+    container_name: zap
+    profiles: ["zap"]
+    restart: unless-stopped
+    command: zap-webswing.sh
+    ports:
+      - "127.0.0.1:8090:8080"   # ZAP Web UI
+    networks:
+      - pentest-net
+
+  # --- 攻撃側 A: Kali Linux デスクトップ（ブラウザで操作する本格環境）---
+  # 起動: docker compose --profile kali up -d
+  # UI  : http://127.0.0.1:3001  (https は https://127.0.0.1:3002)
+  # Kali の中のブラウザ/ツールから http://juice-shop:3000 を攻撃する
+  # 初回はイメージが大きく、ツール追加もあるため起動に時間がかかる
+  kali:
+    image: lscr.io/linuxserver/kali-linux:latest
+    container_name: kali
+    profiles: ["kali"]
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined        # デスクトップ環境の動作に必要
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tokyo
+      - TITLE=Kali Pentest Desktop
+      # 初回起動時に Web テスト系ツールを導入（ZAP/Burp などを含む）
+      - DOCKER_MODS=linuxserver/mods:universal-package-install
+      - INSTALL_PACKAGES=kali-linux-headless|zaproxy|burpsuite|nmap|firefox-esr
+    ports:
+      - "127.0.0.1:3001:3000"     # Kali デスクトップ (HTTP)
+      - "127.0.0.1:3002:3001"     # Kali デスクトップ (HTTPS)
+    volumes:
+      - kali-config:/config       # 設定とツールを永続化
+    networks:
+      - pentest-net
+    shm_size: "1gb"               # ブラウザ等が必要とする共有メモリ
 
 networks:
   pentest-net:
     name: pentest-net
-    external: true
+
+volumes:
+  kali-config:
