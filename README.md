@@ -94,6 +94,27 @@ cp .env.example .env                 # add your LLM API key
 
 See [Cost](#cost-strix-only) below. Strix is the only option here that costs money.
 
+## Other AI pentest agents worth knowing
+
+Strix is one of several AI-driven pentest agents, and they take different approaches. Running more than one is genuinely useful: each model, each methodology, and each toolset finds things the others miss. A black-box agent probes the running app, a white-box agent reasons over the source, and a rule-based scanner exhaustively covers known patterns — together they cover far more than any one alone.
+
+| Tool | Approach | Needs source? | License | Runtime | Notes |
+| --- | --- | --- | --- | --- | --- |
+| [Strix](https://github.com/usestrix/strix) | Autonomous AI agent, mostly black-box | No | Open source | Docker sandbox + BYOK LLM | Proves findings; used in this lab |
+| [Shannon](https://github.com/KeygraphHQ/shannon) | Autonomous AI, **white-box** (reads code, then exploits live) | Yes (mounted read-only) | AGPL-3.0 | Docker + Node 18+ + BYOK | 96.15% on the source-aware XBOW benchmark; black-box only in paid tiers |
+| [PentAGI](https://github.com/vxcontrol/pentagi) | Fully autonomous multi-agent system | No | MIT | Docker-in-Docker + BYOK | 20+ tools (nmap, metasploit, sqlmap), web UI + REST/GraphQL API, knowledge graph |
+| [OWASP ZAP](https://www.zaproxy.org/) / Kali | Rule-based scanners, manual driving | No | Free | Docker (this lab) | No LLM, no per-scan cost; exhaustive on known patterns |
+
+### Why scan with several tools
+
+- **Different blind spots.** An LLM agent is creative but can skip whole classes of issues; a rule-based scanner is thorough on known patterns but never improvises. Each covers the other's gaps.
+- **Black-box vs white-box.** Shannon reasons over your source and finds logic flaws a black-box run never sees; Strix and ZAP hit it from outside the way a real attacker would. Both views matter.
+- **Cross-confirmation.** A finding that two independent tools flag is far more likely real. Overlap reduces false positives and raises your confidence in what to fix.
+- **Cost vs depth.** Run the free tools (ZAP, Kali) first and often; spend LLM budget on an AI agent when you want deeper, reasoning-driven coverage.
+
+> [!NOTE]
+> This repo only sets up Strix, ZAP and Kali. Shannon and PentAGI are listed as alternatives you can run against the same local Juice Shop target — they are not installed here. As always, only test systems you own or are authorized to assess.
+
 ## Reconnaissance / OSINT
 
 In a **real** engagement, penetration testing starts long before any scanner runs. The first phase is reconnaissance: gathering open-source intelligence (OSINT) about the target — domains, subdomains, employees, leaked credentials, technologies, exposed services. Good recon shapes everything that follows.
