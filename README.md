@@ -71,6 +71,30 @@ In ZAP's **Automated Scan**, set the target to `http://juice-shop:3000` and run 
 
 ![OWASP ZAP scanning Juice Shop in the browser](docs/zap-scan.png)
 
+> [!TIP]
+> The container ZAP (and the Kali desktop) stream their GUI over the browser, which can feel sluggish or even go blank on some machines — fine for an **automated scan**, but frustrating for heavy manual work. For **manual exploration** (driving a browser through ZAP, replaying and tampering with requests), a **natively installed ZAP** on your host is far more stable. Download it from [zaproxy.org/download](https://www.zaproxy.org/download/), then target `http://localhost:3000` instead of `http://juice-shop:3000` (the native app is outside Docker, so it reaches the target on the host port, not by container name).
+
+### Native ZAP: "Launch Browser" fails ("The provided browser was not found")
+
+This is almost always a **browser/driver version mismatch**, and it comes back every time Chrome auto-updates past the driver ZAP has.
+
+1. In Manual Explore, pick **Chrome** (not Firefox — Firefox may not be installed) and the non-`Headless` entry, or no browser window appears.
+2. Check that ZAP's bundled `chromedriver` matches your installed Chrome's major version:
+   - Chrome version: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version`
+   - Driver version: run `chromedriver --version` on ZAP's copy (below).
+3. If they differ, download the matching `chromedriver` for your Chrome from [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/), replace ZAP's copy, and **restart ZAP**.
+
+ZAP's bundled `chromedriver` lives at:
+
+| OS | Path |
+| --- | --- |
+| macOS (Apple Silicon) | `~/Library/Application Support/ZAP/webdriver/macos/arm64/chromedriver` |
+| macOS (Intel) | `~/Library/Application Support/ZAP/webdriver/macos/x64/chromedriver` |
+| Linux | `~/.ZAP/webdriver/linux/64/chromedriver` |
+| Windows | `%USERPROFILE%\OWASP ZAP\webdriver\windows\64\chromedriver.exe` |
+
+> On macOS, after replacing the file, clear the quarantine flag so it can run: `xattr -d com.apple.quarantine <path-to-chromedriver>`.
+
 ## Option B — Kali Linux desktop
 
 ```bash
